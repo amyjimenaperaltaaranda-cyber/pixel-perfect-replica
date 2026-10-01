@@ -243,6 +243,7 @@ export const useDesk = create<DeskState>()(
           spreadIndex: 0,
           selectedId: null,
           openDrawerId: null,
+
           envelopeOpen: false,
         }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
