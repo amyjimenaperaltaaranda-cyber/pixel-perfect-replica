@@ -172,7 +172,7 @@ const topZ = (objects: WorkspaceObject[]) =>
 
 export const useDesk = create<DeskState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       objects: initialObjects(),
       albums: initialAlbums(),
       activeAlbumId: "album-2026",
@@ -243,11 +243,9 @@ export const useDesk = create<DeskState>()(
           spreadIndex: 0,
           selectedId: null,
           openDrawerId: null,
-
           envelopeOpen: false,
         }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
+    }),
     { name: "my-photographic-desk-v1", version: 1 },
   ),
 );
