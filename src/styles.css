@@ -59,6 +59,29 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-polaroid: var(--polaroid);
+  --color-brass: var(--brass);
+  --color-wood-deep: var(--wood-deep);
+  --font-hand: "Caveat", "Segoe Print", cursive;
+  --font-serif: "Crimson Pro", Georgia, serif;
+  --font-sans: "Crimson Pro", Georgia, serif;
+  --ease-settle: cubic-bezier(0.22, 0.9, 0.32, 1);
+  --shadow-polaroid: 0 1px 1px rgb(60 40 20 / 0.18), 0 8px 14px -6px rgb(60 40 20 / 0.35);
+  --shadow-paper: 0 2px 3px rgb(60 40 20 / 0.15), 0 10px 22px -10px rgb(60 40 20 / 0.4);
+  --shadow-album: 0 2px 0 oklch(0.25 0.04 40), 0 30px 50px -18px rgb(30 18 8 / 0.65), 0 12px 18px -8px rgb(30 18 8 / 0.45);
+  --shadow-page: inset 0 0 0 1px rgb(120 95 60 / 0.12);
+  --shadow-drawer: 0 -6px 18px -6px rgb(30 18 8 / 0.55), inset 0 2px 0 rgb(255 230 190 / 0.12);
+  --drop-shadow-object: 0 6px 7px rgb(43 28 16 / 0.28);
+  --drop-shadow-paper: 0 3px 3px rgb(43 28 16 / 0.18);
+  --animate-lift: lift 420ms var(--ease-settle) both;
+
+  @keyframes lift {
+    from { opacity: 0; transform: translateY(70px) scale(0.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 }
 
 :root {
@@ -95,6 +118,15 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  --paper: oklch(0.965 0.018 85);
+  --ink: oklch(0.28 0.03 50);
+  --polaroid: oklch(0.975 0.008 90);
+  --brass: oklch(0.72 0.1 80);
+  --wood-deep: oklch(0.3 0.05 50);
+  --album-cover: oklch(0.36 0.06 35);
+  --album-page: oklch(0.93 0.025 82);
+  --drawer-wood: oklch(0.38 0.06 45);
 }
 
 .dark {
@@ -138,7 +170,38 @@
   }
 
   body {
+    font-family: var(--font-serif);
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+@utility bg-polaroid-sheen { background: none; }
+@utility bg-photo-sheen {
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.14), transparent 45%);
+}
+@utility bg-album-cover {
+  background-color: var(--album-cover);
+  background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.04) 0 2px, transparent 2px 5px);
+}
+@utility bg-album-page { background-color: var(--album-page); }
+@utility bg-album-spine {
+  background: linear-gradient(90deg, transparent, rgb(60 40 20 / 0.28) 45%, rgb(60 40 20 / 0.32) 50%, rgb(60 40 20 / 0.28) 55%, transparent);
+}
+@utility bg-page-shade-r { background: linear-gradient(90deg, transparent, rgb(60 40 20 / 0.14)); }
+@utility bg-page-shade-l { background: linear-gradient(270deg, transparent, rgb(60 40 20 / 0.14)); }
+@utility bg-paper-grain {
+  background-image: radial-gradient(rgb(120 95 60 / 0.09) 1px, transparent 1px);
+  background-size: 5px 5px;
+}
+@utility bg-drawer-front {
+  background-color: var(--drawer-wood);
+  background-image: repeating-linear-gradient(90deg, rgb(0 0 0 / 0.05) 0 1px, transparent 1px 9px);
+}
+@utility bg-drawer-inside { background-color: oklch(0.3 0.045 45); }
+@utility bg-desk-light {
+  background: radial-gradient(ellipse at 45% 35%, rgb(255 225 170 / 0.16), transparent 60%);
+}
+@utility bg-vignette {
+  background: radial-gradient(ellipse at center, transparent 55%, rgb(25 14 6 / 0.5));
 }
