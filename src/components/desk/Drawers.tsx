@@ -60,7 +60,7 @@ export function Drawers() {
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0" style={{ zIndex: 60 }}>
+    <div className="absolute bottom-6 left-0 right-0" style={{ zIndex: 60 }}>
       {drawers.map((d, i) => {
         const open = openDrawerId === d.id;
         return (
@@ -71,7 +71,7 @@ export function Drawers() {
           >
             <div
               className="relative rounded-t-[4px] bg-drawer-front shadow-drawer transition-transform duration-300 ease-settle"
-              style={{ transform: open ? "translateY(0)" : "translateY(62px)" }}
+              style={{ transform: open ? "translateY(0)" : "translateY(18px)" }}
             >
               <button
                 type="button"

@@ -9,10 +9,10 @@ export function Album() {
   const activeAlbumId = useDesk((s) => s.activeAlbumId);
   const spreadIndex = useDesk((s) => s.spreadIndex);
   const setSpread = useDesk((s) => s.setSpread);
-  const objects = useDesk((s) => s.objects);
   const [turning, setTurning] = useState<"next" | "prev" | null>(null);
 
   const album = albums.find((a) => a.id === activeAlbumId) ?? albums[0];
+  if (!album) return null;
   const left = album.pages[spreadIndex * 2];
   const right = album.pages[spreadIndex * 2 + 1];
   const maxSpread = Math.ceil(album.pages.length / 2) - 1;
@@ -65,9 +65,8 @@ export function Album() {
       </div>
 
       {/* objects living on the visible pages */}
-      <PageObjects pageId={left?.id} />
-      <PageObjects pageId={right?.id} />
-      {objects.length === 0 ? null : null}
+      <PageObjects pageId={left?.id} left={16} />
+      <PageObjects pageId={right?.id} left={446} />
     </div>
   );
 }
@@ -77,7 +76,7 @@ function Page({
   side,
   turning,
 }: {
-  pageId?: string;
+  pageId?: string | undefined;
   side: "left" | "right";
   turning: boolean;
 }) {
@@ -100,44 +99,15 @@ function Page({
   );
 }
 
-function PageObjects({ pageId }: { pageId?: string }) {
+function PageObjects({ pageId, left }: { pageId?: string | undefined; left: number }) {
   const objects = useDesk((s) => s.objects);
   if (!pageId) return null;
   const onPage = objects.filter((o) => o.location === "album_page" && o.pageId === pageId);
-  const offsetX = pageId.endsWith(String(1)) ? 0 : 0;
-
   return (
-    <div
-      className="pointer-events-none absolute inset-0"
-      style={{ left: offsetX }}
-      data-page-layer={pageId}
-    >
-      <div className="pointer-events-auto">
-        {onPage.map((o) => (
-          <PositionedPageObject key={o.id} pageId={pageId} objId={o.id} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** Page objects are stored in page-local coordinates; this re-anchors them. */
-function PositionedPageObject({ pageId, objId }: { pageId: string; objId: string }) {
-  const obj = useDesk((s) => s.objects.find((o) => o.id === objId));
-  if (!obj) return null;
-
-  // page geometry inside the album container (cover padding 16 + gap 10)
-  const isLeft = true;
-  const pageEl =
-    typeof document !== "undefined"
-      ? (document.querySelector(`[data-page-id="${pageId}"]`) as HTMLElement | null)
-      : null;
-  const offsetLeft = pageEl ? pageEl.offsetLeft : isLeft ? 16 : 446;
-  const offsetTop = pageEl ? pageEl.offsetTop : 16;
-
-  return (
-    <div className="absolute" style={{ left: offsetLeft, top: offsetTop }}>
-      <DeskObject obj={obj} />
+    <div className="absolute h-[560px] w-[420px]" style={{ left, top: 16 }}>
+      {onPage.map((o) => (
+        <DeskObject key={o.id} obj={o} />
+      ))}
     </div>
   );
 }

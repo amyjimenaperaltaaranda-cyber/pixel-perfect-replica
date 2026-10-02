@@ -24,6 +24,14 @@ export function DeskObject({ obj }: Props) {
 
     const k = () => stage.scaleRef.current || 1;
     const start = { cx: e.clientX, cy: e.clientY, x: obj.x, y: obj.y };
+    if (obj.location === "envelope" || obj.location === "drawer") {
+      const r = ref.current!.getBoundingClientRect();
+      const p = toStage(stage, r.left + r.width / 2, r.top + r.height / 2);
+      moveTo(obj.id, "desk", p.x, p.y, undefined);
+      start.x = p.x;
+      start.y = p.y;
+      playSound("paper");
+    }
 
     const onMove = (ev: PointerEvent) => {
       update(obj.id, {

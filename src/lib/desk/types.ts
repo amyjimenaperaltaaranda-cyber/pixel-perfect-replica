@@ -8,11 +8,11 @@ export type WorkspaceObject = {
   /** visual asset key, resolved through the asset registry. Swap freely. */
   assetId: string;
   /** optional user-supplied asset (uploaded SVG/PNG as data URL) */
-  assetSrc?: string;
+  assetSrc?: string | undefined;
   /** photo shown inside a polaroid frame */
-  photoSrc?: string;
-  label?: string;
-  caption?: string;
+  photoSrc?: string | undefined;
+  label?: string | undefined;
+  caption?: string | undefined;
 
   x: number;
   y: number;
@@ -21,8 +21,8 @@ export type WorkspaceObject = {
   zIndex: number;
 
   location: ObjectLocation;
-  pageId?: string;
-  drawerId?: string;
+  pageId?: string | undefined;
+  drawerId?: string | undefined;
 };
 
 export type AlbumPage = { id: string };

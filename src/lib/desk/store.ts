@@ -155,7 +155,7 @@ type DeskState = {
     location: ObjectLocation,
     x: number,
     y: number,
-    pageId?: string,
+    pageId?: string | undefined,
   ) => void;
 
   setSpread: (index: number) => void;

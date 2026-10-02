@@ -86,7 +86,7 @@ export function CornerMenu() {
         ) : null}
 
         {panel === "albums" ? (
-          <div className="w-60 rounded-sm border border-ink/15 bg-paper/97 p-3 font-hand text-sm text-ink/80 shadow-paper">
+          <div className="w-60 rounded-sm border border-ink/15 bg-paper p-3 font-hand text-sm text-ink/80 shadow-paper">
             <ul className="space-y-1">
               {albums.map((a) => (
                 <li key={a.id}>
@@ -107,7 +107,7 @@ export function CornerMenu() {
         ) : null}
 
         {panel === "cameras" ? (
-          <div className="w-60 rounded-sm border border-ink/15 bg-paper/97 p-3 font-hand text-sm text-ink/80 shadow-paper">
+          <div className="w-60 rounded-sm border border-ink/15 bg-paper p-3 font-hand text-sm text-ink/80 shadow-paper">
             <p className="mb-2 text-ink/55">Añadir cámara</p>
             <input
               value={cameraName}
