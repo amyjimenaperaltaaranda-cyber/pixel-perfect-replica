@@ -12,6 +12,7 @@ export function Album() {
   const [turning, setTurning] = useState<"next" | "prev" | null>(null);
 
   const album = albums.find((a) => a.id === activeAlbumId) ?? albums[0];
+  if (!album) return null;
   const left = album.pages[spreadIndex * 2];
   const right = album.pages[spreadIndex * 2 + 1];
   const maxSpread = Math.ceil(album.pages.length / 2) - 1;
@@ -75,7 +76,7 @@ function Page({
   side,
   turning,
 }: {
-  pageId?: string;
+  pageId?: string | undefined;
   side: "left" | "right";
   turning: boolean;
 }) {
@@ -98,7 +99,7 @@ function Page({
   );
 }
 
-function PageObjects({ pageId, left }: { pageId?: string; left: number }) {
+function PageObjects({ pageId, left }: { pageId?: string | undefined; left: number }) {
   const objects = useDesk((s) => s.objects);
   if (!pageId) return null;
   const onPage = objects.filter((o) => o.location === "album_page" && o.pageId === pageId);
