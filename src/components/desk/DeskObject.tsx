@@ -13,6 +13,7 @@ export function DeskObject({ obj }: Props) {
   const { select, update, bringToFront, sendBackward, remove, moveTo } = useDesk();
   const selected = useDesk((s) => s.selectedId === obj.id);
   const [dragging, setDragging] = useState(false);
+  const [tilt, setTilt] = useState({ r: 0, x: 0, y: 0 });
   const ref = useRef<HTMLDivElement>(null);
 
   const startDrag = (e: React.PointerEvent) => {
@@ -33,7 +34,22 @@ export function DeskObject({ obj }: Props) {
       playSound("paper");
     }
 
+    let lx = e.clientX;
+    let ly = e.clientY;
+    let lt = performance.now();
+    let vx = 0;
+    let vy = 0;
     const onMove = (ev: PointerEvent) => {
+      const now = performance.now();
+      const dt = Math.max(8, now - lt);
+      vx = vx * 0.75 + ((ev.clientX - lx) / dt) * 0.25;
+      vy = vy * 0.75 + ((ev.clientY - ly) / dt) * 0.25;
+      lx = ev.clientX;
+      ly = ev.clientY;
+      lt = now;
+      const c = (n: number, m: number) => Math.max(-m, Math.min(m, n));
+      // subtle lean toward the motion, like a sheet held by one corner
+      setTilt({ r: c(vx * 2.2, 2.5), x: c(-vy * 6, 7), y: c(vx * 6, 7) });
       update(obj.id, {
         x: start.x + (ev.clientX - start.cx) / k(),
         y: start.y + (ev.clientY - start.cy) / k(),
@@ -44,6 +60,7 @@ export function DeskObject({ obj }: Props) {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       setDragging(false);
+      setTilt({ r: 0, x: 0, y: 0 });
       drop(ev.clientX, ev.clientY);
     };
 
@@ -120,16 +137,20 @@ export function DeskObject({ obj }: Props) {
     <div
       ref={ref}
       onPointerDown={startDrag}
-      className={`absolute touch-none transition-[filter,transform] duration-200 ease-settle ${
+      className={`absolute touch-none ease-settle ${
         dragging ? "cursor-grabbing" : "cursor-grab"
       }`}
       style={{
         left: obj.x,
         top: obj.y,
         zIndex: dragging ? 9999 : obj.zIndex,
-        transform: `translate(-50%, -50%) rotate(${obj.rotation}deg) scale(${
-          obj.scale * (dragging ? 1.04 : 1)
-        })`,
+        // light lag while carried gives weight; a slower settle on release
+        transition: dragging
+          ? "left 70ms ease-out, top 70ms ease-out, transform 160ms ease-out, filter 200ms ease-out"
+          : "transform 420ms cubic-bezier(.2,1.4,.4,1), filter 380ms ease-out",
+        transform: `translate(-50%, ${dragging ? "calc(-50% - 6px)" : "-50%"}) perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(${
+          obj.rotation + tilt.r
+        }deg) scale(${obj.scale * (dragging ? 1.04 : 1)})`,
         filter: dragging
           ? "drop-shadow(0 26px 22px rgb(43 28 16 / 0.38))"
           : "drop-shadow(0 6px 7px rgb(43 28 16 / 0.22))",
