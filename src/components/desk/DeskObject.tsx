@@ -13,6 +13,7 @@ export function DeskObject({ obj }: Props) {
   const { select, update, bringToFront, sendBackward, remove, moveTo } = useDesk();
   const selected = useDesk((s) => s.selectedId === obj.id);
   const [dragging, setDragging] = useState(false);
+  const [settling, setSettling] = useState(false);
   const [tilt, setTilt] = useState({ r: 0, x: 0, y: 0 });
   const ref = useRef<HTMLDivElement>(null);
 
@@ -61,6 +62,8 @@ export function DeskObject({ obj }: Props) {
       window.removeEventListener("pointerup", onUp);
       setDragging(false);
       setTilt({ r: 0, x: 0, y: 0 });
+      setSettling(true);
+      window.setTimeout(() => setSettling(false), 450);
       drop(ev.clientX, ev.clientY);
     };
 
@@ -147,7 +150,9 @@ export function DeskObject({ obj }: Props) {
         // light lag while carried gives weight; a slower settle on release
         transition: dragging
           ? "left 70ms ease-out, top 70ms ease-out, transform 160ms ease-out, filter 200ms ease-out"
-          : "transform 420ms cubic-bezier(.2,1.4,.4,1), filter 380ms ease-out",
+          : settling
+            ? "transform 420ms cubic-bezier(.2,1.4,.4,1), filter 380ms ease-out"
+            : "filter 200ms ease-out",
         transform: `translate(-50%, ${dragging ? "calc(-50% - 6px)" : "-50%"}) perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(${
           obj.rotation + tilt.r
         }deg) scale(${obj.scale * (dragging ? 1.04 : 1)})`,
