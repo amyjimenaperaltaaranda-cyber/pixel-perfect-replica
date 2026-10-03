@@ -60,10 +60,12 @@ export function Album() {
       if (settled) {
         s.active = false;
         raf.current = null;
+        // logical state changes only after the sheet has settled; the sheet
+        // stays on screen for two more frames so the swap is never visible
         if (s.target === 1) {
           setSpread(spreadRef.current + (s.dir === "next" ? 1 : -1));
         }
-        setFlip(null);
+        requestAnimationFrame(() => requestAnimationFrame(() => setFlip(null)));
         return;
       }
       raf.current = requestAnimationFrame(step);
@@ -270,12 +272,18 @@ function Sheet({
   // nested strips build a smooth bend from the spine to the free edge
   const strips = [];
   let node: React.ReactNode = null;
+  const bends = Array.from({ length: STRIPS }, (_, i) => (i === 0 ? 0 : curl * (0.4 + (i / STRIPS) * 1.4)));
+  let acc = angle;
+  const facing = bends.map((b) => {
+    acc += b;
+    return Math.cos((acc * Math.PI) / 180) >= 0;
+  });
   for (let i = STRIPS - 1; i >= 0; i--) {
-    const bendI = i === 0 ? 0 : curl * (0.4 + (i / STRIPS) * 1.4);
+    const bendI = bends[i]!;
     // per-strip light: the curled part catches light / falls into shade
     const shade = Math.min(0.32, Math.abs(curl) * 0.012 * (i / STRIPS) + lift * 0.08);
     node = (
-      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p}>
+      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i]!} lift={lift}>
         {node}
       </Strip>
     );
@@ -309,8 +317,12 @@ function Strip({
   back,
   shade,
   p,
+  up,
+  lift,
   children,
 }: {
+  up: boolean;
+  lift: number;
   i: number;
   dir: Dir;
   bend: number;
@@ -347,8 +359,13 @@ function Strip({
         transform: `rotateY(${bend}deg)`,
       }}
     >
-      <Face pageId={front} offset={frontOffset} side={frontSide} shade={shade + p * 0.12} flipped={false} />
-      <Face pageId={back} offset={backOffset} side={backSide} shade={Math.max(0, shade * 0.6 + (1 - p) * 0.22)} flipped />
+      {/* only the side of the paper facing the viewer is drawn, so objects
+          stay glued to their own side and never show through the back */}
+      {up ? (
+        <Face pageId={front} offset={frontOffset} side={frontSide} shade={shade + p * 0.12} flipped={false} lift={lift} />
+      ) : (
+        <Face pageId={back} offset={backOffset} side={backSide} shade={Math.max(0, shade * 0.6 + (1 - p) * 0.22)} flipped lift={lift} />
+      )}
       {children}
     </div>
   );
@@ -360,7 +377,9 @@ function Face({
   side,
   shade,
   flipped,
+  lift,
 }: {
+  lift: number;
   pageId?: string | undefined;
   offset: number;
   side: "left" | "right";
@@ -394,6 +413,7 @@ function Face({
               top: o.y,
               zIndex: o.zIndex,
               transform: `translate(-50%, -50%) rotate(${o.rotation}deg) scale(${o.scale})`,
+              filter: `drop-shadow(${flipped ? -1 : 1}px ${6 - lift * 3}px ${7 - lift * 3}px rgb(43 28 16 / ${0.22 - lift * 0.08}))`,
             }}
           >
             <ObjectView obj={o} />
