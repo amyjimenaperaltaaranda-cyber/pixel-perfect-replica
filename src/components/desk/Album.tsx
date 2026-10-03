@@ -167,9 +167,9 @@ export function Album() {
     >
       <div ref={bookRef} className="relative rounded-[6px] bg-album-cover p-4 shadow-album">
         <div className="relative flex gap-[10px] rounded-[3px]">
-          <Page pageId={baseLeft} side="left" shadow={flip?.dir === "prev" ? flip.p : flip?.dir === "next" ? 0 : 0} castFrom={flip?.dir === "next" ? flip.p : null} />
+          <Page pageId={baseLeft} side="left" shadow={flip?.dir === "prev" ? flip.p : flip?.dir === "next" ? 0 : 0} castFrom={flip ? flip.p : null} />
           <div className="pointer-events-none absolute inset-y-0 left-1/2 w-10 -translate-x-1/2 bg-album-spine" style={{ zIndex: 2 }} />
-          <Page pageId={baseRight} side="right" shadow={0} castFrom={flip?.dir === "prev" ? flip.p : null} />
+          <Page pageId={baseRight} side="right" shadow={0} castFrom={flip ? flip.p : null} />
         </div>
 
         <button
