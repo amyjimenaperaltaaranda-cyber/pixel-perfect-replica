@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { DeskObject } from "./DeskObject";
 import { ObjectView } from "./ObjectView";
@@ -60,12 +61,14 @@ export function Album() {
       if (settled) {
         s.active = false;
         raf.current = null;
-        // logical state changes only after the sheet has settled; the sheet
-        // stays on screen for two more frames so the swap is never visible
-        if (s.target === 1) {
-          setSpread(spreadRef.current + (s.dir === "next" ? 1 : -1));
-        }
-        requestAnimationFrame(() => requestAnimationFrame(() => setFlip(null)));
+        // Replace the settled sheet and spread in one commit. Keeping the old
+        // sheet across a spread update would render it with the next pages.
+        flushSync(() => {
+          setFlip(null);
+          if (s.target === 1) {
+            setSpread(spreadRef.current + (s.dir === "next" ? 1 : -1));
+          }
+        });
         return;
       }
       raf.current = requestAnimationFrame(step);
@@ -279,11 +282,11 @@ function Sheet({
     return Math.cos((acc * Math.PI) / 180) >= 0;
   });
   for (let i = STRIPS - 1; i >= 0; i--) {
-    const bendI = bends[i]!;
+    const bendI = bends[i] ?? 0;
     // per-strip light: the curled part catches light / falls into shade
     const shade = Math.min(0.32, Math.abs(curl) * 0.012 * (i / STRIPS) + lift * 0.08);
     node = (
-      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i]!} lift={lift}>
+      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i] ?? true} lift={lift}>
         {node}
       </Strip>
     );
@@ -300,8 +303,7 @@ function Sheet({
         height: PH,
         transformStyle: "preserve-3d",
         transformOrigin: dir === "next" ? "left center" : "right center",
-        transform: `translateZ(${z}px) rotateX(${tilt}deg) rotateY(${angle}deg)`,
-        filter: `drop-shadow(${sign * -lift * 22}px ${6 + lift * 14}px ${8 + lift * 18}px rgb(30 18 8 / ${0.18 + lift * 0.25}))`,
+        transform: `translateX(${sign * 10 * p}px) translateZ(${z}px) rotateX(${tilt}deg) rotateY(${angle}deg)`,
       }}
     >
       {strips}
@@ -392,8 +394,9 @@ function Face({
     <div
       className="absolute inset-0 overflow-hidden"
       style={{
-        backfaceVisibility: "hidden",
-        WebkitBackfaceVisibility: "hidden",
+        // Strip already selects the visible face using its cumulative angle.
+        // CSS backface culling here can hide that face after overflow flattens
+        // its local 3D context, particularly on the reverse side.
         transform: flipped ? "rotateY(180deg)" : undefined,
       }}
     >
