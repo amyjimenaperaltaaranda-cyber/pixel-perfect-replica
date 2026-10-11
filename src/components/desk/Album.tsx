@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { DeskObject } from "./DeskObject";
 import { ObjectView } from "./ObjectView";
 import { useDesk } from "@/lib/desk/store";
 import { playSound } from "@/lib/desk/sounds";
+import type { Album as AlbumData, WorkspaceObject } from "@/lib/desk/types";
+import { intersectsPageStrip, protrudesFromPage } from "@/lib/desk/album-geometry";
 
 const PW = 420;
 const PH = 560;
@@ -19,6 +21,17 @@ export function Album() {
   const activeAlbumId = useDesk((s) => s.activeAlbumId);
   const spreadIndex = useDesk((s) => s.spreadIndex);
   const setSpread = useDesk((s) => s.setSpread);
+  const objects = useDesk((s) => s.objects);
+  const pageObjects = useMemo(() => {
+    const grouped = new Map<string, WorkspaceObject[]>();
+    for (const obj of objects) {
+      if (obj.location !== "album_page" || !obj.pageId) continue;
+      const group = grouped.get(obj.pageId) ?? [];
+      group.push(obj);
+      grouped.set(obj.pageId, group);
+    }
+    return grouped;
+  }, [objects]);
 
   const [flip, setFlip] = useState<Flip | null>(null);
   const bookRef = useRef<HTMLDivElement>(null);
@@ -170,6 +183,7 @@ export function Album() {
       className="absolute"
       style={{ left: 800, top: 520, transform: "translate(-50%, -50%) rotate(-0.6deg)", zIndex: 5 }}
     >
+      <CoveredEdges album={album} spreadIndex={spreadIndex} dir={flip?.dir} pageObjects={pageObjects} />
       <div ref={bookRef} className="relative rounded-[6px] bg-album-cover p-4 shadow-album">
         <div className="relative flex gap-[10px] rounded-[3px]">
           <Page pageId={baseLeft} side="left" shadow={flip?.dir === "prev" ? flip.p : flip?.dir === "next" ? 0 : 0} castFrom={flip ? flip.p : null} />
@@ -219,6 +233,7 @@ export function Album() {
             front={sheetFront}
             back={sheetBack}
             lift={lift}
+            pageObjects={pageObjects}
           />
         </div>
       ) : null}
@@ -252,6 +267,7 @@ function Sheet({
   front,
   back,
   lift,
+  pageObjects,
 }: {
   dir: Dir;
   p: number;
@@ -260,6 +276,7 @@ function Sheet({
   front?: string | undefined;
   back?: string | undefined;
   lift: number;
+  pageObjects: Map<string, WorkspaceObject[]>;
 }) {
   const sign = dir === "next" ? -1 : 1;
   // ease the hinge so the sheet lingers a moment when lifted and falls with weight
@@ -286,7 +303,7 @@ function Sheet({
     // per-strip light: the curled part catches light / falls into shade
     const shade = Math.min(0.32, Math.abs(curl) * 0.012 * (i / STRIPS) + lift * 0.08);
     node = (
-      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i] ?? true} lift={lift}>
+      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i] ?? true} lift={lift} pageObjects={pageObjects}>
         {node}
       </Strip>
     );
@@ -322,6 +339,7 @@ function Strip({
   up,
   lift,
   children,
+  pageObjects,
 }: {
   up: boolean;
   lift: number;
@@ -333,6 +351,7 @@ function Strip({
   shade: number;
   p: number;
   children: React.ReactNode;
+  pageObjects: Map<string, WorkspaceObject[]>;
 }) {
   const fromLeft = dir === "next"; // strips grow away from the spine
   // horizontal offset of this strip within the front page
@@ -364,9 +383,9 @@ function Strip({
       {/* only the side of the paper facing the viewer is drawn, so objects
           stay glued to their own side and never show through the back */}
       {up ? (
-        <Face pageId={front} offset={frontOffset} side={frontSide} shade={shade + p * 0.12} flipped={false} lift={lift} />
+        <Face objects={front ? pageObjects.get(front) : undefined} offset={frontOffset} side={frontSide} shade={shade + p * 0.12} flipped={false} lift={lift} />
       ) : (
-        <Face pageId={back} offset={backOffset} side={backSide} shade={Math.max(0, shade * 0.6 + (1 - p) * 0.22)} flipped lift={lift} />
+        <Face objects={back ? pageObjects.get(back) : undefined} offset={backOffset} side={backSide} shade={Math.max(0, shade * 0.6 + (1 - p) * 0.22)} flipped lift={lift} />
       )}
       {children}
     </div>
@@ -374,7 +393,7 @@ function Strip({
 }
 
 function Face({
-  pageId,
+  objects,
   offset,
   side,
   shade,
@@ -382,18 +401,21 @@ function Face({
   lift,
 }: {
   lift: number;
-  pageId?: string | undefined;
+  objects?: WorkspaceObject[] | undefined;
   offset: number;
   side: "left" | "right";
   shade: number;
   flipped: boolean;
 }) {
-  const objects = useDesk((s) => s.objects);
-  const onPage = pageId ? objects.filter((o) => o.location === "album_page" && o.pageId === pageId) : [];
+  const onPage = useMemo(() => objects?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [objects, offset]);
+  const outsideLeft = offset === 0;
+  const outsideRight = offset + SW >= PW;
   return (
     <div
-      className="absolute inset-0 overflow-hidden"
+      className="absolute inset-0"
       style={{
+        // Clip only at internal strip seams, not at the sheet's outer edges.
+        clipPath: `inset(-10000px ${outsideRight !== flipped ? "-10000px" : "0px"} -10000px ${outsideLeft !== flipped ? "-10000px" : "0px"})`,
         // Strip already selects the visible face using its cumulative angle.
         // CSS backface culling here can hide that face after overflow flattens
         // its local 3D context, particularly on the reverse side.
@@ -461,7 +483,7 @@ function Page({
   );
 }
 
-function PageObjects({ pageId, left }: { pageId?: string | undefined; left: number }) {
+const PageObjects = memo(function PageObjects({ pageId, left }: { pageId?: string | undefined; left: number }) {
   const objects = useDesk((s) => s.objects);
   if (!pageId) return null;
   const onPage = objects.filter((o) => o.location === "album_page" && o.pageId === pageId);
@@ -472,4 +494,34 @@ function PageObjects({ pageId, left }: { pageId?: string | undefined; left: numb
       ))}
     </div>
   );
-}
+});
+
+/** Only exposed edges of covered pages; never duplicate a flat or moving face. */
+const CoveredEdges = memo(function CoveredEdges({ album, spreadIndex, dir, pageObjects }: {
+  album: AlbumData;
+  spreadIndex: number;
+  dir?: Dir | undefined;
+  pageObjects: Map<string, WorkspaceObject[]>;
+}) {
+  const L = spreadIndex * 2;
+  const exposed = new Set(dir === "next" ? [L, L + 1, L + 2, L + 3] : dir === "prev" ? [L - 2, L - 1, L, L + 1] : [L, L + 1]);
+  return <div className="pointer-events-none absolute inset-0" aria-hidden style={{ zIndex: 3 }}>
+    {album.pages.map((page, index) => {
+      if (exposed.has(index)) return null;
+      const keepsakes = pageObjects.get(page.id)?.filter(protrudesFromPage);
+      if (!keepsakes?.length) return null;
+      const left = index < L;
+      const mirrored = left ? index % 2 === 1 : index % 2 === 0;
+      return <div key={page.id} data-covered-page={page.id} className="absolute" style={{
+        left: left ? 16 : 446, top: 16, width: PW, height: PH,
+        zIndex: left ? index : album.pages.length - index,
+        clipPath: `polygon(evenodd, -10000px -10000px, 10000px -10000px, 10000px 10000px, -10000px 10000px, -10000px -10000px, 0px 0px, 0px ${PH}px, ${PW}px ${PH}px, ${PW}px 0px, 0px 0px)`,
+      }}>
+        {keepsakes.map(obj => <div key={obj.id} data-covered-object={obj.id} className="absolute" style={{
+          left: mirrored ? PW - obj.x : obj.x, top: obj.y, zIndex: obj.zIndex,
+          transform: `translate(-50%, -50%) ${mirrored ? "scaleX(-1)" : ""} rotate(${obj.rotation}deg) scale(${obj.scale})`,
+        }}><ObjectView obj={obj} /></div>)}
+      </div>;
+    })}
+  </div>;
+});

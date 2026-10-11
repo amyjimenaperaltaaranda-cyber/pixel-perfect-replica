@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { getAsset } from "@/lib/desk/assets";
 import type { WorkspaceObject } from "@/lib/desk/types";
 
 /** Pure visual layer: swap an asset here and behaviour stays untouched. */
-export function ObjectView({ obj }: { obj: WorkspaceObject }) {
+export const ObjectView = memo(function ObjectView({ obj }: { obj: WorkspaceObject }) {
   if (obj.type === "polaroid") {
     return <PolaroidView obj={obj} />;
   }
@@ -41,7 +42,7 @@ export function ObjectView({ obj }: { obj: WorkspaceObject }) {
       {asset?.draw?.()}
     </div>
   );
-}
+});
 
 export function PolaroidView({
   obj,

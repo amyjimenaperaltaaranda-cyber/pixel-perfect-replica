@@ -5,6 +5,7 @@ import { ObjectView } from "./ObjectView";
 import { useDesk } from "@/lib/desk/store";
 import type { WorkspaceObject } from "@/lib/desk/types";
 import { playSound } from "@/lib/desk/sounds";
+import { albumObjectBounds, PAGE_HEIGHT, PAGE_WIDTH } from "@/lib/desk/album-geometry";
 
 type Props = { obj: WorkspaceObject };
 
@@ -27,7 +28,9 @@ export function DeskObject({ obj }: Props) {
     const k = () => stage.scaleRef.current || 1;
     const start = { cx: e.clientX, cy: e.clientY, x: obj.x, y: obj.y };
     if (obj.location === "envelope" || obj.location === "drawer") {
-      const r = ref.current!.getBoundingClientRect();
+      const element = ref.current;
+      if (!element) return;
+      const r = element.getBoundingClientRect();
       const p = toStage(stage, r.left + r.width / 2, r.top + r.height / 2);
       moveTo(obj.id, "desk", p.x, p.y, undefined);
       start.x = p.x;
@@ -72,6 +75,16 @@ export function DeskObject({ obj }: Props) {
   };
 
   const drop = (clientX: number, clientY: number) => {
+    // A center outside the page is not a detachment: keep the original page
+    // while any part of the positioned keepsake still overlaps its sheet.
+    const current = useDesk.getState().objects.find((o) => o.id === obj.id);
+    if (current?.location === "album_page") {
+      const b = albumObjectBounds(current);
+      if (b.right > 0 && b.left < PAGE_WIDTH && b.bottom > 0 && b.top < PAGE_HEIGHT) {
+        playSound("paper");
+        return;
+      }
+    }
     const page = document
       .elementsFromPoint(clientX, clientY)
       .find((el) => el instanceof HTMLElement && el.dataset["pageId"]) as HTMLElement | undefined;
@@ -99,7 +112,9 @@ export function DeskObject({ obj }: Props) {
 
   const startRotate = (e: React.PointerEvent) => {
     e.stopPropagation();
-    const rect = ref.current!.getBoundingClientRect();
+    const element = ref.current;
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const base = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI) - obj.rotation;
@@ -118,7 +133,9 @@ export function DeskObject({ obj }: Props) {
 
   const startScale = (e: React.PointerEvent) => {
     e.stopPropagation();
-    const rect = ref.current!.getBoundingClientRect();
+    const element = ref.current;
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const d0 = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
