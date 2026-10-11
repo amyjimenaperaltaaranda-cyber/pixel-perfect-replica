@@ -11,3 +11,4 @@
 
 - Desk objects share one WorkspaceObject shape (src/lib/desk/types.ts); visuals resolve via assetRegistry (src/lib/desk/assets.tsx) so assets can be swapped without touching behaviour.
 - Desk state persists to localStorage via zustand persist; move to Lovable Cloud when Google Drive/accounts arrive.
+- Album turns select sheet faces by cumulative strip angle and commit the settled spread with sheet removal atomically, preventing reverse-face culling and stale-content flashes.
