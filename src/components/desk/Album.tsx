@@ -6,7 +6,7 @@ import { ObjectView } from "./ObjectView";
 import { useDesk } from "@/lib/desk/store";
 import { playSound } from "@/lib/desk/sounds";
 import type { Album as AlbumData, WorkspaceObject } from "@/lib/desk/types";
-import { intersectsPageStrip, protrudesFromPage } from "@/lib/desk/album-geometry";
+import { albumObjectBounds, intersectsPageStrip, protrudesFromPage } from "@/lib/desk/album-geometry";
 
 const PW = 420;
 const PH = 560;
@@ -410,12 +410,21 @@ function Face({
   const onPage = useMemo(() => objects?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [objects, offset]);
   const outsideLeft = offset === 0;
   const outsideRight = offset + SW >= PW;
+  const overflow = useMemo(() => {
+    const bounds = onPage.map(albumObjectBounds);
+    return {
+      top: Math.max(16, ...bounds.map(b => -b.top + 16)),
+      bottom: Math.max(16, ...bounds.map(b => b.bottom - PH + 16)),
+      left: Math.max(16, ...bounds.map(b => -b.left + 16)),
+      right: Math.max(16, ...bounds.map(b => b.right - PW + 16)),
+    };
+  }, [onPage]);
   return (
     <div
       className="absolute inset-0"
       style={{
         // Clip only at internal strip seams, not at the sheet's outer edges.
-        clipPath: `inset(-10000px ${outsideRight !== flipped ? "-10000px" : "0px"} -10000px ${outsideLeft !== flipped ? "-10000px" : "0px"})`,
+        clipPath: `inset(${-overflow.top}px ${outsideRight !== flipped ? -(flipped ? overflow.left : overflow.right) : 0}px ${-overflow.bottom}px ${outsideLeft !== flipped ? -(flipped ? overflow.right : overflow.left) : 0}px)`,
         // Strip already selects the visible face using its cumulative angle.
         // CSS backface culling here can hide that face after overflow flattens
         // its local 3D context, particularly on the reverse side.
@@ -512,10 +521,15 @@ const CoveredEdges = memo(function CoveredEdges({ album, spreadIndex, dir, pageO
       if (!keepsakes?.length) return null;
       const left = index < L;
       const mirrored = left ? index % 2 === 1 : index % 2 === 0;
+      const bounds = keepsakes.map(albumObjectBounds);
+      const x1 = Math.min(-16, ...bounds.map(b => (mirrored ? PW - b.right : b.left) - 16));
+      const x2 = Math.max(PW + 16, ...bounds.map(b => (mirrored ? PW - b.left : b.right) + 16));
+      const y1 = Math.min(-16, ...bounds.map(b => b.top - 16));
+      const y2 = Math.max(PH + 16, ...bounds.map(b => b.bottom + 16));
       return <div key={page.id} data-covered-page={page.id} className="absolute" style={{
         left: left ? 16 : 446, top: 16, width: PW, height: PH,
         zIndex: left ? index : album.pages.length - index,
-        clipPath: `polygon(evenodd, -10000px -10000px, 10000px -10000px, 10000px 10000px, -10000px 10000px, -10000px -10000px, 0px 0px, 0px ${PH}px, ${PW}px ${PH}px, ${PW}px 0px, 0px 0px)`,
+        clipPath: `polygon(evenodd, ${x1}px ${y1}px, ${x2}px ${y1}px, ${x2}px ${y2}px, ${x1}px ${y2}px, ${x1}px ${y1}px, 0px 0px, 0px ${PH}px, ${PW}px ${PH}px, ${PW}px 0px, 0px 0px)`,
       }}>
         {keepsakes.map(obj => <div key={obj.id} data-covered-object={obj.id} className="absolute" style={{
           left: mirrored ? PW - obj.x : obj.x, top: obj.y, zIndex: obj.zIndex,
