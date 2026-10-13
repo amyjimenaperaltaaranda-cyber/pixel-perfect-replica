@@ -23,6 +23,27 @@ export type WorkspaceObject = {
   location: ObjectLocation;
   pageId?: string | undefined;
   drawerId?: string | undefined;
+  /** envelope collection this object belongs to (undefined = original envelope) */
+  envelopeId?: string | undefined;
+  /** natural display size for user photos (keeps original proportions) */
+  w?: number | undefined;
+  h?: number | undefined;
+  /** showing its designed reverse side */
+  flipped?: boolean | undefined;
+  /** handwritten date used on the reverse */
+  photoDate?: string | undefined;
+};
+
+export type PhotoEnvelope = {
+  id: string;
+  name: string;
+  date: string;
+  category: string;
+  driveUrl: string;
+  driveFolderId: string;
+  x: number;
+  y: number;
+  rotation: number;
 };
 
 export type AlbumPage = { id: string };
