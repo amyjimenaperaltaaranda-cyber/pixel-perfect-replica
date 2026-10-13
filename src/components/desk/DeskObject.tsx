@@ -17,6 +17,8 @@ export function DeskObject({ obj }: Props) {
   const [settling, setSettling] = useState(false);
   const [tilt, setTilt] = useState({ r: 0, x: 0, y: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  // animate only flips made in this session, not every mount
+  const flipKey = useRef<boolean | null>(null);
 
   const startDrag = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -178,7 +180,9 @@ export function DeskObject({ obj }: Props) {
           : "drop-shadow(0 6px 7px rgb(43 28 16 / 0.22))",
       }}
     >
-      <ObjectView obj={obj} />
+      <div key={obj.flipped ? "back" : "front"} className={flipKey.current !== null ? "animate-photo-flip" : ""}>
+        <ObjectView obj={obj} face={obj.flipped ? "back" : "front"} />
+      </div>
 
       {selected ? (
         <>
@@ -211,6 +215,9 @@ export function DeskObject({ obj }: Props) {
             <MenuButton onClick={() => sendBackward(obj.id)}>Atrás</MenuButton>
             <MenuButton onClick={() => update(obj.id, { rotation: 0, scale: 1 })}>
               Enderezar
+            </MenuButton>
+            <MenuButton onClick={() => { flipKey.current = !obj.flipped; update(obj.id, { flipped: !obj.flipped }); playSound("paper"); }}>
+              Voltear
             </MenuButton>
             <MenuButton onClick={() => remove(obj.id)}>Quitar</MenuButton>
           </div>

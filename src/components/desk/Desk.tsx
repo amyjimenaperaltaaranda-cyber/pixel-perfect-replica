@@ -7,6 +7,7 @@ import { CornerMenu } from "./CornerMenu";
 import { DeskObject } from "./DeskObject";
 import { Drawers } from "./Drawers";
 import { Envelope } from "./Envelope";
+import { Mailbox, PhotoEnvelopes } from "./Mailbox";
 import { STAGE_H, STAGE_W, StageProvider } from "./stage-context";
 
 export function Desk() {
@@ -58,6 +59,8 @@ export function Desk() {
             <>
               <Album />
               <Envelope />
+              <PhotoEnvelopes />
+              <Mailbox />
               {onDesk.map((o) => (
                 <DeskObject key={o.id} obj={o} />
               ))}

@@ -289,6 +289,12 @@ function Sheet({
 
   const hingeLeft = dir === "next" ? PW + 10 : 0;
 
+  // the reverse of each keepsake, seen from the other side of the sheet
+  const frontObjs = front ? pageObjects.get(front) : undefined;
+  const backObjs = back ? pageObjects.get(back) : undefined;
+  const frontReverse = useMemo(() => frontObjs?.map(mirrorObj), [frontObjs]);
+  const backReverse = useMemo(() => backObjs?.map(mirrorObj), [backObjs]);
+
   // nested strips build a smooth bend from the spine to the free edge
   const strips = [];
   let node: React.ReactNode = null;
@@ -303,7 +309,7 @@ function Sheet({
     // per-strip light: the curled part catches light / falls into shade
     const shade = Math.min(0.32, Math.abs(curl) * 0.012 * (i / STRIPS) + lift * 0.08);
     node = (
-      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i] ?? true} lift={lift} pageObjects={pageObjects}>
+      <Strip key={i} i={i} dir={dir} bend={bendI} front={front} back={back} shade={shade} p={p} up={facing[i] ?? true} lift={lift} pageObjects={pageObjects} frontReverse={frontReverse} backReverse={backReverse}>
         {node}
       </Strip>
     );
@@ -340,7 +346,11 @@ function Strip({
   lift,
   children,
   pageObjects,
+  frontReverse,
+  backReverse,
 }: {
+  frontReverse?: WorkspaceObject[] | undefined;
+  backReverse?: WorkspaceObject[] | undefined;
   up: boolean;
   lift: number;
   i: number;
@@ -383,9 +393,9 @@ function Strip({
       {/* only the side of the paper facing the viewer is drawn, so objects
           stay glued to their own side and never show through the back */}
       {up ? (
-        <Face objects={front ? pageObjects.get(front) : undefined} offset={frontOffset} side={frontSide} shade={shade + p * 0.12} flipped={false} lift={lift} />
+        <Face objects={front ? pageObjects.get(front) : undefined} reverse={backReverse} offset={frontOffset} side={frontSide} shade={shade + p * 0.12} flipped={false} lift={lift} />
       ) : (
-        <Face objects={back ? pageObjects.get(back) : undefined} offset={backOffset} side={backSide} shade={Math.max(0, shade * 0.6 + (1 - p) * 0.22)} flipped lift={lift} />
+        <Face objects={back ? pageObjects.get(back) : undefined} reverse={frontReverse} offset={backOffset} side={backSide} shade={Math.max(0, shade * 0.6 + (1 - p) * 0.22)} flipped lift={lift} />
       )}
       {children}
     </div>
@@ -394,6 +404,7 @@ function Strip({
 
 function Face({
   objects,
+  reverse,
   offset,
   side,
   shade,
@@ -402,23 +413,25 @@ function Face({
 }: {
   lift: number;
   objects?: WorkspaceObject[] | undefined;
+  reverse?: WorkspaceObject[] | undefined;
   offset: number;
   side: "left" | "right";
   shade: number;
   flipped: boolean;
 }) {
   const onPage = useMemo(() => objects?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [objects, offset]);
+  const reversed = useMemo(() => reverse?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [reverse, offset]);
   const outsideLeft = offset === 0;
   const outsideRight = offset + SW >= PW;
   const overflow = useMemo(() => {
-    const bounds = onPage.map(albumObjectBounds);
+    const bounds = [...onPage, ...reversed].map(albumObjectBounds);
     return {
       top: Math.max(16, ...bounds.map(b => -b.top + 16)),
       bottom: Math.max(16, ...bounds.map(b => b.bottom - PH + 16)),
       left: Math.max(16, ...bounds.map(b => -b.left + 16)),
       right: Math.max(16, ...bounds.map(b => b.right - PW + 16)),
     };
-  }, [onPage]);
+  }, [onPage, reversed]);
   return (
     <div
       className="absolute inset-0"
@@ -438,6 +451,17 @@ function Face({
             side === "left" ? "right-0 bg-page-shade-r" : "left-0 bg-page-shade-l"
           }`}
         />
+        {/* keepsakes stuck on the other side show their designed reverse
+            while the sheet is in the air, beneath this side's own objects */}
+        {reversed.map((o) => (
+          <div key={`r-${o.id}`} className="absolute" style={{
+            left: o.x, top: o.y, zIndex: 0,
+            transform: `translate(-50%, -50%) rotate(${o.rotation}deg) scale(${o.scale})`,
+            filter: `drop-shadow(${flipped ? -1 : 1}px 3px 4px rgb(43 28 16 / 0.16))`,
+          }}>
+            <ObjectView obj={o} face={o.flipped ? "front" : "back"} />
+          </div>
+        ))}
         {onPage.map((o) => (
           <div
             key={o.id}
@@ -450,7 +474,7 @@ function Face({
               filter: `drop-shadow(${flipped ? -1 : 1}px ${6 - lift * 3}px ${7 - lift * 3}px rgb(43 28 16 / ${0.22 - lift * 0.08}))`,
             }}
           >
-            <ObjectView obj={o} />
+            <ObjectView obj={o} face={o.flipped ? "back" : "front"} />
           </div>
         ))}
       </div>
@@ -533,9 +557,14 @@ const CoveredEdges = memo(function CoveredEdges({ album, spreadIndex, dir, pageO
       }}>
         {keepsakes.map(obj => <div key={obj.id} data-covered-object={obj.id} className="absolute" style={{
           left: mirrored ? PW - obj.x : obj.x, top: obj.y, zIndex: obj.zIndex,
-          transform: `translate(-50%, -50%) ${mirrored ? "scaleX(-1)" : ""} rotate(${obj.rotation}deg) scale(${obj.scale})`,
-        }}><ObjectView obj={obj} /></div>)}
+          transform: `translate(-50%, -50%) rotate(${mirrored ? -obj.rotation : obj.rotation}deg) scale(${obj.scale})`,
+        }}><ObjectView obj={obj} face={mirrored !== !!obj.flipped ? "back" : "front"} /></div>)}
       </div>;
     })}
   </div>;
 });
+
+/** Position of a keepsake as seen from the opposite side of its sheet. */
+function mirrorObj(o: WorkspaceObject): WorkspaceObject {
+  return { ...o, x: PW - o.x, rotation: -o.rotation };
+}

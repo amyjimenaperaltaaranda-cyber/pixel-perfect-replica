@@ -1,16 +1,18 @@
 import { memo } from "react";
 import { getAsset } from "@/lib/desk/assets";
 import type { WorkspaceObject } from "@/lib/desk/types";
+import { PhotoBack } from "./PhotoBack";
 
 /** Pure visual layer: swap an asset here and behaviour stays untouched. */
-export const ObjectView = memo(function ObjectView({ obj }: { obj: WorkspaceObject }) {
+export const ObjectView = memo(function ObjectView({ obj, face = "front" }: { obj: WorkspaceObject; face?: "front" | "back" }) {
+  if (face === "back") return <PhotoBack obj={obj} />;
   if (obj.type === "polaroid") {
     return <PolaroidView obj={obj} />;
   }
 
   const asset = getAsset(obj.assetId);
-  const w = asset?.w ?? 120;
-  const h = asset?.h ?? 120;
+  const w = obj.w ?? asset?.w ?? 120;
+  const h = obj.h ?? asset?.h ?? 120;
 
   if (obj.assetSrc) {
     return (

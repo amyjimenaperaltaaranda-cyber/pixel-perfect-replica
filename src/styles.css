@@ -78,6 +78,11 @@
   --drop-shadow-paper: 0 3px 3px rgb(43 28 16 / 0.18);
   --animate-lift: lift 420ms var(--ease-settle) both;
 
+  --animate-photo-flip: photo-flip 380ms var(--ease-settle) both;
+  @keyframes photo-flip {
+    from { transform: perspective(700px) rotateY(90deg); }
+    to { transform: perspective(700px) rotateY(0deg); }
+  }
   @keyframes lift {
     from { opacity: 0; transform: translateY(70px) scale(0.92); }
     to { opacity: 1; transform: translateY(0) scale(1); }
@@ -183,6 +188,15 @@
 @utility bg-album-cover {
   background-color: var(--album-cover);
   background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.04) 0 2px, transparent 2px 5px);
+}
+@utility bg-photo-back {
+  background-color: oklch(0.93 0.035 85);
+  background-image:
+    radial-gradient(circle at 18% 72%, rgb(150 110 60 / 0.10) 0 6%, transparent 7%),
+    radial-gradient(circle at 81% 23%, rgb(150 110 60 / 0.08) 0 4%, transparent 5%),
+    radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(140 100 50 / 0.18)),
+    repeating-linear-gradient(17deg, rgb(120 90 50 / 0.035) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-71deg, rgb(120 90 50 / 0.03) 0 1px, transparent 1px 7px);
 }
 @utility bg-album-page { background-color: var(--album-page); }
 @utility bg-album-spine {

@@ -9,7 +9,7 @@ export function Envelope() {
   const open = useDesk((s) => s.envelopeOpen);
   const setOpen = useDesk((s) => s.setEnvelopeOpen);
   const objects = useDesk((s) => s.objects);
-  const inside = objects.filter((o) => o.location === "envelope");
+  const inside = objects.filter((o) => o.location === "envelope" && !o.envelopeId);
 
   return (
     <>

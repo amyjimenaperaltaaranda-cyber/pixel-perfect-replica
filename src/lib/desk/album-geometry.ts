@@ -7,8 +7,8 @@ export const PAGE_HEIGHT = 560;
 /** Conservative bounds, including caption space, for culling only. */
 export function albumObjectBounds(obj: WorkspaceObject) {
   const asset = getAsset(obj.assetId);
-  const w = obj.type === "polaroid" ? 190 : (asset?.w ?? 120);
-  const h = obj.type === "polaroid" ? (obj.caption ? 266 : 216) : (asset?.h ?? 120);
+  const w = obj.type === "polaroid" ? 190 : (obj.w ?? asset?.w ?? 120);
+  const h = obj.type === "polaroid" ? (obj.caption ? 266 : 216) : (obj.h ?? asset?.h ?? 120);
   const angle = obj.rotation * Math.PI / 180;
   const halfW = (Math.abs(Math.cos(angle)) * w + Math.abs(Math.sin(angle)) * h) * obj.scale / 2;
   const halfH = (Math.abs(Math.sin(angle)) * w + Math.abs(Math.cos(angle)) * h) * obj.scale / 2;
