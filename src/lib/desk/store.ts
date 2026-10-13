@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { Album, ObjectLocation, WorkspaceObject } from "./types";
+import type { Album, ObjectLocation, PhotoEnvelope, WorkspaceObject } from "./types";
 import { samplePhotos } from "./assets";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -143,6 +143,14 @@ type DeskState = {
   envelopeOpen: boolean;
   selectedId: string | null;
   lastSavedAt: number | null;
+  envelopes: PhotoEnvelope[];
+  categories: string[];
+  openEnvelopeId: string | null;
+  setOpenEnvelope: (id: string | null) => void;
+  addEnvelope: (
+    env: Omit<PhotoEnvelope, "id" | "x" | "y" | "rotation">,
+    photos: { src: string; name: string; w: number; h: number }[],
+  ) => void;
 
   select: (id: string | null) => void;
   update: (id: string, patch: Partial<WorkspaceObject>) => void;
@@ -181,6 +189,26 @@ export const useDesk = create<DeskState>()(
       envelopeOpen: false,
       selectedId: null,
       lastSavedAt: null,
+      envelopes: [],
+      categories: ["Viajes", "Familia", "Amigos", "Cotidiano"],
+      openEnvelopeId: null,
+      setOpenEnvelope: (id) => set({ openEnvelopeId: id }),
+      addEnvelope: (env, photos) =>
+        set((s) => {
+          const id = `env-${uid()}`;
+          const n = s.envelopes.length;
+          let z = topZ(s.objects);
+          const objs: WorkspaceObject[] = photos.map((p) => ({
+            id: uid(), type: "photo", assetId: "photo.drive", assetSrc: p.src, label: p.name,
+            w: p.w, h: p.h, photoDate: env.date, x: 0, y: 0, rotation: jitter(7), scale: 1,
+            zIndex: z++, location: "envelope", envelopeId: id,
+          }));
+          return {
+            envelopes: [...s.envelopes, { ...env, id, x: 1440 - (n % 3) * 18, y: 600 + (n % 4) * 44, rotation: jitter(10) }],
+            categories: s.categories.includes(env.category) ? s.categories : [...s.categories, env.category],
+            objects: [...s.objects, ...objs],
+          };
+        }),
 
       select: (id) => set({ selectedId: id }),
       update: (id, patch) =>
@@ -244,6 +272,8 @@ export const useDesk = create<DeskState>()(
           selectedId: null,
           openDrawerId: null,
           envelopeOpen: false,
+          envelopes: [],
+          openEnvelopeId: null,
         }),
     }),
     { name: "my-photographic-desk-v1", version: 1 },
