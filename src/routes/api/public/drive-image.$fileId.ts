@@ -9,8 +9,8 @@ export const Route = createFileRoute("/api/public/drive-image/$fileId")({
       GET: async ({ params }) => {
         const id = params.fileId;
         if (!/^[\w-]{10,100}$/.test(id)) return new Response("Bad id", { status: 400 });
-        const lovableKey = process.env.LOVABLE_API_KEY;
-        const driveKey = process.env.GOOGLE_DRIVE_API_KEY;
+        const lovableKey = process.env["LOVABLE_API_KEY"];
+        const driveKey = process.env["GOOGLE_DRIVE_API_KEY"];
         if (!lovableKey || !driveKey) return new Response("Drive not connected", { status: 503 });
         const headers = { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": driveKey };
 

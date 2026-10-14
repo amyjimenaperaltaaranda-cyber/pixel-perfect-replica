@@ -11,8 +11,8 @@ export const listDriveFolder = createServerFn({ method: "POST" })
     z.object({ folderId: z.string().regex(/^[\w-]{10,100}$/) }).parse(input),
   )
   .handler(async ({ data }): Promise<{ photos: DrivePhoto[]; error: string | null }> => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const driveKey = process.env.GOOGLE_DRIVE_API_KEY;
+    const lovableKey = process.env["LOVABLE_API_KEY"];
+    const driveKey = process.env["GOOGLE_DRIVE_API_KEY"];
     if (!lovableKey || !driveKey) return { photos: [], error: "Google Drive no está conectado." };
 
     const q = `'${data.folderId}' in parents and mimeType contains 'image/' and trashed=false`;
