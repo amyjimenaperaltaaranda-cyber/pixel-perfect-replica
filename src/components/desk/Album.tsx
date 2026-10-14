@@ -216,8 +216,8 @@ export function Album() {
       </div>
 
       {/* objects living on the flat pages */}
-      <PageObjects pageId={baseLeft} left={16} />
-      <PageObjects pageId={baseRight} left={446} />
+      <PageObjects pageId={baseLeft} left={16} side="left" turning={!!flip} />
+      <PageObjects pageId={baseRight} left={446} side="right" turning={!!flip} />
 
       {/* the sheet in the air */}
       {flip ? (
@@ -421,8 +421,13 @@ function Face({
 }) {
   const onPage = useMemo(() => objects?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [objects, offset]);
   const reversed = useMemo(() => reverse?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [reverse, offset]);
+  // Only outer page edges may show overflow; the spine edge always clips so a
+  // keepsake near the fold never draws over the opposite page.
   const outsideLeft = offset === 0;
   const outsideRight = offset + SW >= PW;
+  // clip-path is in the face's local (page) coordinates
+  const spineLeft = side === "right" && offset === 0;
+  const spineRight = side === "left" && offset + SW >= PW;
   const overflow = useMemo(() => {
     const bounds = [...onPage, ...reversed].map(albumObjectBounds);
     return {
@@ -437,7 +442,7 @@ function Face({
       className="absolute inset-0"
       style={{
         // Clip only at internal strip seams, not at the sheet's outer edges.
-        clipPath: `inset(${-overflow.top}px ${outsideRight !== flipped ? -(flipped ? overflow.left : overflow.right) : 0}px ${-overflow.bottom}px ${outsideLeft !== flipped ? -(flipped ? overflow.right : overflow.left) : 0}px)`,
+        clipPath: `inset(${-overflow.top}px ${outsideRight !== flipped && !spineRight ? -(flipped ? overflow.left : overflow.right) : 0}px ${-overflow.bottom}px ${outsideLeft !== flipped && !spineLeft ? -(flipped ? overflow.right : overflow.left) : 0}px)`,
         // Strip already selects the visible face using its cumulative angle.
         // CSS backface culling here can hide that face after overflow flattens
         // its local 3D context, particularly on the reverse side.
@@ -516,12 +521,28 @@ function Page({
   );
 }
 
-const PageObjects = memo(function PageObjects({ pageId, left }: { pageId?: string | undefined; left: number }) {
+const PageObjects = memo(function PageObjects({ pageId, left, side, turning }: { pageId?: string | undefined; left: number; side: "left" | "right"; turning: boolean }) {
   const objects = useDesk((s) => s.objects);
   if (!pageId) return null;
   const onPage = objects.filter((o) => o.location === "album_page" && o.pageId === pageId);
   return (
-    <div className="absolute h-[560px] w-[420px]" style={{ left, top: 16 }}>
+    <div
+      className="absolute h-[560px] w-[420px]"
+      style={{
+        left,
+        top: 16,
+        // While a sheet turns, flat-page objects form one stacking layer below
+        // it (their own zIndex values can't climb above the sheet) and are cut
+        // at the spine so nothing straddles onto the turning page. Outer edges
+        // keep their protrusions.
+        ...(turning
+          ? {
+              zIndex: 10,
+              clipPath: side === "left" ? "inset(-2000px 0 -2000px -2000px)" : "inset(-2000px -2000px -2000px 0)",
+            }
+          : null),
+      }}
+    >
       {onPage.map((o) => (
         <DeskObject key={o.id} obj={o} />
       ))}
