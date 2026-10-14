@@ -216,8 +216,8 @@ export function Album() {
       </div>
 
       {/* objects living on the flat pages */}
-      <PageObjects pageId={baseLeft} left={16} />
-      <PageObjects pageId={baseRight} left={446} />
+      <PageObjects pageId={baseLeft} left={16} side="left" turning={!!flip} />
+      <PageObjects pageId={baseRight} left={446} side="right" turning={!!flip} />
 
       {/* the sheet in the air */}
       {flip ? (
@@ -421,8 +421,11 @@ function Face({
 }) {
   const onPage = useMemo(() => objects?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [objects, offset]);
   const reversed = useMemo(() => reverse?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [reverse, offset]);
-  const outsideLeft = offset === 0;
-  const outsideRight = offset + SW >= PW;
+  // Only outer page edges may show overflow; the spine edge always clips so a
+  // keepsake near the fold never draws over the opposite page.
+  const spineEdge = side === "right" ? "L" : "R";
+  const outsideLeft = offset === 0 && spineEdge !== (flipped ? "R" : "L");
+  const outsideRight = offset + SW >= PW && spineEdge !== (flipped ? "L" : "R");
   const overflow = useMemo(() => {
     const bounds = [...onPage, ...reversed].map(albumObjectBounds);
     return {
@@ -516,12 +519,28 @@ function Page({
   );
 }
 
-const PageObjects = memo(function PageObjects({ pageId, left }: { pageId?: string | undefined; left: number }) {
+const PageObjects = memo(function PageObjects({ pageId, left, side, turning }: { pageId?: string | undefined; left: number; side: "left" | "right"; turning: boolean }) {
   const objects = useDesk((s) => s.objects);
   if (!pageId) return null;
   const onPage = objects.filter((o) => o.location === "album_page" && o.pageId === pageId);
   return (
-    <div className="absolute h-[560px] w-[420px]" style={{ left, top: 16 }}>
+    <div
+      className="absolute h-[560px] w-[420px]"
+      style={{
+        left,
+        top: 16,
+        // While a sheet turns, flat-page objects form one stacking layer below
+        // it (their own zIndex values can't climb above the sheet) and are cut
+        // at the spine so nothing straddles onto the turning page. Outer edges
+        // keep their protrusions.
+        ...(turning
+          ? {
+              zIndex: 10,
+              clipPath: side === "left" ? "inset(-2000px 0 -2000px -2000px)" : "inset(-2000px -2000px -2000px 0)",
+            }
+          : null),
+      }}
+    >
       {onPage.map((o) => (
         <DeskObject key={o.id} obj={o} />
       ))}
