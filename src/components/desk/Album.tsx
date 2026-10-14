@@ -423,9 +423,11 @@ function Face({
   const reversed = useMemo(() => reverse?.filter((o) => intersectsPageStrip(o, offset, SW)) ?? [], [reverse, offset]);
   // Only outer page edges may show overflow; the spine edge always clips so a
   // keepsake near the fold never draws over the opposite page.
-  const spineEdge = side === "right" ? "L" : "R";
-  const outsideLeft = offset === 0 && spineEdge !== (flipped ? "R" : "L");
-  const outsideRight = offset + SW >= PW && spineEdge !== (flipped ? "L" : "R");
+  const outsideLeft = offset === 0;
+  const outsideRight = offset + SW >= PW;
+  // clip-path is in the face's local (page) coordinates
+  const spineLeft = side === "right" && offset === 0;
+  const spineRight = side === "left" && offset + SW >= PW;
   const overflow = useMemo(() => {
     const bounds = [...onPage, ...reversed].map(albumObjectBounds);
     return {
@@ -440,7 +442,7 @@ function Face({
       className="absolute inset-0"
       style={{
         // Clip only at internal strip seams, not at the sheet's outer edges.
-        clipPath: `inset(${-overflow.top}px ${outsideRight !== flipped ? -(flipped ? overflow.left : overflow.right) : 0}px ${-overflow.bottom}px ${outsideLeft !== flipped ? -(flipped ? overflow.right : overflow.left) : 0}px)`,
+        clipPath: `inset(${-overflow.top}px ${outsideRight !== flipped && !spineRight ? -(flipped ? overflow.left : overflow.right) : 0}px ${-overflow.bottom}px ${outsideLeft !== flipped && !spineLeft ? -(flipped ? overflow.right : overflow.left) : 0}px)`,
         // Strip already selects the visible face using its cumulative angle.
         // CSS backface culling here can hide that face after overflow flattens
         // its local 3D context, particularly on the reverse side.
